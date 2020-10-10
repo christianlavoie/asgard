@@ -3,15 +3,8 @@ use std::str::Chars;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
-#[derive(Clone,Copy,Debug)]
-enum ParserState {
-    Normal,
-    String
-}
-
 struct Lexer<'e> {
     input: &'e mut Chars<'e>,
-    parser_state: ParserState
 }
 
 #[derive(Clone,Debug)]
@@ -27,25 +20,34 @@ impl<'e> Iterator for Lexer<'e> {
 
     fn next(&mut self) -> Option<LexItem> {
         let it = &mut self.input;
-        match (it.next(), self.parser_state) {
-            (None,      _)                     => { None }
-            (Some(c),   ParserState::Normal) if c.is_ascii_whitespace() => { self.next() }
-            (Some('+'), ParserState::Normal)   => { Some(LexItem::Ident(String::from("+"))) }
-            (Some('-'), ParserState::Normal)   => { Some(LexItem::Ident(String::from("-"))) }
-            (Some('*'), ParserState::Normal)   => { Some(LexItem::Ident(String::from("*"))) }
-            (Some('/'), ParserState::Normal)   => { Some(LexItem::Ident(String::from("/"))) }
-            (Some('('), ParserState::Normal)   => { Some(LexItem::OpenParen) }
-            (Some(')'), ParserState::Normal)   => { Some(LexItem::CloseParen) }
-            (Some('"'), ParserState::Normal)   => {
-                self.parser_state = ParserState::String;
-                it.next();
-                let s = it.take_while(|c2| *c2 != '"').collect::<String>();
-                it.next();
-                Some(LexItem::StringLit(s))
+        if let Some(c) = it.next() {
+            match c {
+                _ if c.is_ascii_whitespace() => {
+                    self.next()
+                }
+
+                '(' => {
+                    Some(LexItem::OpenParen)
+                }
+
+                ')' => {
+                    Some(LexItem::CloseParen)
+                }
+
+                '"' => {
+                    let s = it.take_while(|c2| *c2 != '"').collect::<String>();
+                    it.next(); // skip quote
+                    Some(LexItem::StringLit(s))
+                }
+
+                _ => {
+                    let s = &mut it.take_while(|c2| !c2.is_ascii_whitespace() && *c2 != '(' && *c2 != ')').collect::<String>();
+                    s.insert(0, c);
+                    Some(LexItem::Ident(s.to_string()))
+                }
             }
-            (c, ps) => {
-                panic!("Unrecognized char {:?} in state {:?}", c, ps);
-            }
+        } else {
+            None
         }
     }
 }
@@ -71,8 +73,7 @@ fn main() {
             Ok(line) => {
                 rl.add_history_entry(line.as_str());
                 let r = Lexer {
-                    input: &mut line.chars(),
-                    parser_state: ParserState::Normal
+                    input: &mut line.chars()
                 };
 
                 println!("Line: {}", line);
