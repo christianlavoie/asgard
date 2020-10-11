@@ -1,8 +1,11 @@
+use std::collections::HashMap;
+
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
 mod lexer;
-use crate::lexer::lexer::Lexer;
+mod parser;
+mod eval;
 
 fn main() {
     let mut rl = Editor::<()>::new();
@@ -24,21 +27,36 @@ fn main() {
         match readline {
             Ok(line) => {
                 rl.add_history_entry(line.as_str());
-                let r = Lexer {
+                let r = lexer::Lexer {
                     input: &mut line.chars().peekable()
                 };
 
-                println!("Line: {}", line);
-                println!("Tokens: {:?}", r.collect::<Vec<_>>());
+                let p = parser::Parser {
+                    input: &mut r.peekable()
+                };
+
+                let mut env = eval::Environment {
+                    values: HashMap::<String, &parser::Value>::new()
+                };
+
+                eval::add_default_funcs(&mut env);
+
+                match eval::eval(&mut env, &mut p.peekable()) {
+                    Ok(v) => { println!("Got {:?}", v); }
+                    Err(s) => { panic!(s); }
+                }
             },
+
             Err(ReadlineError::Interrupted) => {
                 println!("CTRL-C");
                 break
             },
+
             Err(ReadlineError::Eof) => {
                 println!("CTRL-D");
                 break
             },
+
             Err(err) => {
                 println!("Error: {:?}", err);
                 break
