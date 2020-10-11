@@ -29,7 +29,7 @@ impl<'e> Iterator for Lexer<'e> {
 
     fn next(&mut self) -> Option<Lexeme> {
         let it = &mut self.input;
-        if let Some(c) = it.skip_while(|c| c.is_ascii_whitespace()).next() {
+        if let Some(c) = it.find(|c| !c.is_ascii_whitespace()) {
             match c {
                 '(' => { Some(OpenParen) }
                 ')' => { Some(CloseParen) }
@@ -45,7 +45,7 @@ impl<'e> Iterator for Lexer<'e> {
                         num.push(*c);
                         it.next();
                     }
-                    Some(IntLit(num.parse::<i64>().expect(format!("Could not parse {} to i64", num).as_str())))
+                    Some(IntLit(num.parse::<i64>().unwrap_or_else(|_| panic!("Could not parse {} to i64", num))))
                 }
 
                 _ => {
@@ -56,9 +56,9 @@ impl<'e> Iterator for Lexer<'e> {
                         it.next();
                     }
 
-                    if ident == String::from("fn") {
+                    if ident == *"fn" {
                         Some(Fn)
-                    } else if ident == String::from("def") {
+                    } else if ident == *"def" {
                         Some(Def)
                     } else {
                         Some(Ident(ident))

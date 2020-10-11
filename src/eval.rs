@@ -10,11 +10,11 @@ pub struct Environment<'a> {
 }
 
 pub fn func_builtin_add(values: &[Value]) -> Value {
-    let mut it = values.iter();
+    let it = values.iter();
     let mut sum = 0;
-    while let Some(v) = it.next() {
+    for v in it {
         match v {
-            Value::Int(i) => { sum = sum + i; }
+            Value::Int(i) => { sum += i; }
             _ => { panic!("Tried to add non-numerical {:?}", v); }
         }
     }
@@ -31,7 +31,7 @@ pub fn add_default_funcs(env: &mut Environment) {
 }
 
 pub fn eval<'e>(env: &mut Environment, forms: &mut Peekable<Parser<'e>>) -> Result<Value, String> {
-    while let Some(form) = forms.next() {
+    for form in forms {
         match form {
             List(v) => {
                 match v.get(0) {

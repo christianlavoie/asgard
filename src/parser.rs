@@ -47,7 +47,7 @@ impl<'e> Iterator for Parser<'e> {
         match (current, next) {
             (Some(IntLit(n)), _) => { Some(Int(n)) }
             (Some(StrLit(s)), _) => { Some(Str(s)) }
-            (Some(Lexeme::Ident(c)), _) => { Some(Value::Ident(c.clone())) }
+            (Some(Lexeme::Ident(c)), _) => { Some(Value::Ident(c)) }
 
             (Some(OpenParen), Some(Fn)) => {
                 panic!("Unimplemented function definition");
