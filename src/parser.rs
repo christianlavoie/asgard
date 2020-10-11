@@ -58,6 +58,7 @@ impl<'e> Iterator for Parser<'e> {
 
                 loop {
                     if self.input.by_ref().peek() == Some(&CloseParen) {
+                        self.input.by_ref().next();
                         return Some(List(list));
                     } else if self.input.by_ref().peek() == None {
                         panic!("Missing closing parenthesis");
@@ -67,9 +68,12 @@ impl<'e> Iterator for Parser<'e> {
                 }
             }
 
-            c => {
-                println!("Seen: {:?}", c);
+            (None, None) => {
                 None
+            }
+
+            c => {
+                panic!("Unimplemented parser state: {:?}", c);
             }
         }
     }

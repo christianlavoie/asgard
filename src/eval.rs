@@ -30,40 +30,61 @@ pub fn add_default_funcs(env: &mut Environment) {
     env.values.insert(String::from("+"), &BUILTIN_ADD);
 }
 
-pub fn eval<'e>(env: &mut Environment, forms: &mut Peekable<Parser<'e>>) -> Result<Value, String> {
-    for form in forms {
-        match form {
-            List(v) => {
-                match v.get(0) {
-                    Some(Builtin(func)) => {
-                        return Ok((func.native_fn)(&v[1..]));
-                    }
+fn eval_value(env: &mut Environment, value: &Value) -> Result<Value, String> {
+    println!("Evaluating {:?}", value);
 
-                    Some(Ident(ident)) => {
-                        match env.values.get(ident) {
-                            Some(Value::Builtin(func)) => {
-                                return Ok((func.native_fn)(&v[1..]));
-                            }
+    match value {
+        List(v) => {
+            match v.get(0) {
+                Some(Builtin(func)) => {
+                    let mut args = Vec::<Value>::new();
+                    for arg in &v[1..] { args.push(eval_value(env, arg)?); }
+                    Ok((func.native_fn)(&args))
+                }
 
-                            notfunc => {
-                                return Err(format!("Got non-func out of environment for {}: {:?}", ident, notfunc));
-                            }
+                Some(Ident(ident)) => {
+                    match env.values.get(ident) {
+                        Some(Value::Builtin(func)) => {
+                            let mut args = Vec::<Value>::new();
+                            for arg in &v[1..] { args.push(eval_value(env, arg)?); }
+                            println!("Calling {} with {:?}", ident, args);
+
+                            Ok((func.native_fn)(&args))
+                        }
+
+                        notfunc => {
+                            Err(format!("Got non-func out of environment for {}: {:?}", ident, notfunc))
                         }
                     }
+                }
 
-                    notfunc => {
-                        return Err(format!("Unimplemented: {:?}", notfunc))
-                    }
+                notfunc => {
+                    Err(format!("Unimplemented: {:?}", notfunc))
                 }
             }
+        }
 
-            notlist => {
-                return Err(format!("Unimplemented: {:?}", notlist))
-            }
+        Int(i) => {
+            Ok(Int(*i))
+        }
+
+        notlist => {
+            Err(format!("Unimplemented: {:?}", notlist))
+        }
+    }
+}
+
+pub fn eval<'e>(env: &mut Environment, forms: &mut Peekable<Parser<'e>>) -> Result<Vec::<Value>, String> {
+    let mut retval = Vec::<Value>::new();
+
+    for form in forms {
+        match eval_value(env, &form) {
+            Ok(v) => { retval.push(v); }
+            Err(v) => { return Err(v); }
         }
     }
 
-    Ok(Int(42))
+    Ok(retval)
 }
 
 #[cfg(test)]
@@ -79,7 +100,7 @@ mod tests {
         };
         add_default_funcs(&mut env);
 
-        let s = "(+ 1 2)";
+        let s = "(+ (+ 1 1) (+ 2 3) 13 22)";
 
         let lexer = Lexer {
             input: &mut s.chars().peekable()
@@ -89,7 +110,7 @@ mod tests {
             input: &mut lexer.peekable()
         };
 
-        let expected = Ok(Value::Int(3));
+        let expected = Ok(vec![Value::Int(42)]);
         let actual = eval(&mut env, &mut parser.peekable());
 
         assert_eq!(expected, actual);
