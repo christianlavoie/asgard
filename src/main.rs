@@ -1,11 +1,8 @@
-use std::collections::HashMap;
-
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
-mod lexer;
-mod parser;
-mod eval;
+use asgard::*;
+use asgard::Value::*;
 
 fn main() {
     let mut rl = Editor::<()>::new();
@@ -24,27 +21,14 @@ fn main() {
 
     loop {
         let readline = rl.readline("lispedit> ");
+        let mut env = Environment::new();
+        env.values.insert(String::from("a"), Int(123));
+        env.values.insert(String::from("b"), Int(456));
+
         match readline {
             Ok(line) => {
                 rl.add_history_entry(line.as_str());
-                let r = lexer::Lexer {
-                    input: &mut line.chars().peekable()
-                };
-
-                let p = parser::Parser {
-                    input: &mut r.peekable()
-                };
-
-                let mut env = eval::Environment {
-                    values: HashMap::<String, &parser::Value>::new()
-                };
-
-                eval::add_default_funcs(&mut env);
-
-                match eval::eval(&mut env, &mut p.peekable()) {
-                    Ok(v) => { println!("Got {:?}", v); }
-                    Err(s) => { panic!(s); }
-                }
+                parse_toplevel(&mut env, line.as_str());
             },
 
             Err(ReadlineError::Interrupted) => {

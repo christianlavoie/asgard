@@ -1,0 +1,12 @@
+non_digit_ident_char =  { 'a'..'z' | 'A'..'Z' | "*" | "+" | "!" | "-" | "_" | "?" | "<" | ">" | "=" }
+ident_char = { '0'..'9' | 'a'..'z' | 'A'..'Z' | "*" | "+" | "!" | "-" | "_" | "?" | "<" | ">" | "=" }
+digit     = _{ '0'..'9' }
+
+num     = @{ digit+ }
+ident   = @{ non_digit_ident_char ~ ident_char* }
+list    =  { "(" ~ (ident | num | list)+ ~ ")" }
+if_form =  { "(" ~ "if" ~ (ident | num | list)+ ~ ")" }
+
+toplevel = _{ list | ident | num }
+
+WHITESPACE = _{ " " }
