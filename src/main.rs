@@ -48,3 +48,24 @@ fn main() {
         }
     }
 }
+
+extern crate test_generator;
+
+#[cfg(test)]
+mod tests {
+    use std::fs::*;
+
+    use asgard::*;
+
+    test_generator::test_expand_paths! { test_asgard_sample; "tests/*.asg" }
+
+    fn test_asgard_sample(name: &str) {
+        let mut env = Environment::new();
+
+        println!("Processing: {:?}", name);
+
+        let script = read_to_string(name).unwrap();
+        parse_toplevel(&mut env, &script);
+        assert!(true);
+    }
+}

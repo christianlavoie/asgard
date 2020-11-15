@@ -135,34 +135,3 @@ pub fn eval(env: &mut Environment, pair: &Pair<Rule>) -> Value {
         _ => panic!("Unreachable: {:?}", pair)
     }
 }
-
-
-#[cfg(test)]
-mod tests {
-    use crate::lexer::*;
-    use crate::parser::*;
-    use crate::eval::*;
-
-    #[test]
-    fn basic_form() {
-        let mut env = Environment {
-            values: HashMap::<String, &Value>::new()
-        };
-        add_default_funcs(&mut env);
-
-        let s = "(+ (+ 1 1) (+ 2 3) 13 22)";
-
-        let lexer = Lexer {
-            input: &mut s.chars().peekable()
-        };
-
-        let parser = Parser {
-            input: &mut lexer.peekable()
-        };
-
-        let expected = Ok(vec![Value::Int(42)]);
-        let actual = eval(&mut env, &mut parser.peekable());
-
-        assert_eq!(expected, actual);
-    }
-}
