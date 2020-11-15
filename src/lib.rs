@@ -39,6 +39,7 @@ pub enum Value {
     List(Vec<Value>),
     Int(i64),
     Str(String),
+    Bool(bool),
     If(Vec<Value>),
     Ident(String),
     Builtin(NativeFn)
@@ -86,9 +87,9 @@ pub fn add_default_funcs(env: &mut Environment) {
 
 pub fn eval(env: &mut Environment, pair: &Pair<Rule>) -> Value {
     match pair.as_rule() {
-        Rule::num => {
-            Int(pair.as_str().parse::<i64>().unwrap())
-        }
+        Rule::true_  => { Bool(true) }
+        Rule::false_ => { Bool(false) }
+        Rule::num    => { Int(pair.as_str().parse::<i64>().unwrap()) }
 
         Rule::ident => {
             let ident = pair.as_str();
@@ -106,12 +107,27 @@ pub fn eval(env: &mut Environment, pair: &Pair<Rule>) -> Value {
 
             let head = lst.remove(0);
             match head {
-                Builtin(f) => {
-                    (f.native_fn)(env, &lst)
-                }
+                Builtin(f) => { (f.native_fn)(env, &lst) }
+                _          => { panic!("{:?} not a function", head) }
+            }
+        }
 
+        Rule::if_ => {
+            let mut pairs = pair.clone().into_inner();
+            let cond = eval(env, &pairs.next().unwrap());
+            let t = pairs.next();
+            let f = pairs.next();
+            match (cond.clone(), t, f) {
+                (Bool(true), Some(v), _)  => eval(env, &v),
+                (Bool(false), _, Some(v)) => eval(env, &v),
+                (Bool(true), None, _)     => {
+                    panic!("if branch missing a needed true alternative");
+                }
+                (Bool(false), _, None)     => {
+                    panic!("if branch missing a needed false alternative");
+                }
                 _ => {
-                    panic!("{:?} not a function", head);
+                    panic!("Not a boolean: {:?}", cond);
                 }
             }
         }
