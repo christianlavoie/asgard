@@ -17,7 +17,7 @@ struct AsgardLispParser;
 
 #[derive(Clone)]
 pub struct NativeFn {
-    pub native_fn: fn(env: &mut Environment, &Vec<Value>) -> Value
+    pub native_fn: fn(env: &mut Environment, &[Value]) -> Value
 }
 
 impl fmt::Debug for NativeFn {
@@ -58,20 +58,104 @@ impl Environment {
     }
 }
 
-pub fn func_builtin_add(_env: &mut Environment, values: &Vec<Value>) -> Value {
-    let mut sum = 0;
+impl Default for Environment {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+pub fn func_builtin_add(_env: &mut Environment, values: &[Value]) -> Value {
+    let mut retval = 0;
     for v in values.iter() {
         match v {
-            Value::Int(i) => { sum += i; }
+            Value::Int(i) => { retval += i; }
             _ => { panic!("Tried to add non-numerical {:?}", v); }
         }
     }
 
-    Value::Int(sum)
+    Value::Int(retval)
 }
 
 const BUILTIN_ADD: Value = Value::Builtin(NativeFn {
     native_fn: func_builtin_add
+});
+
+pub fn func_builtin_sub(_env: &mut Environment, values: &[Value]) -> Value {
+    let mut retval;
+    let mut it = values.iter();
+    match it.next() {
+        Some(Value::Int(i)) => { retval = *i; }
+        v => { panic!("builtin func sub passed invalid arg {:?}", v); }
+    }
+    for v in values.iter() {
+        match v {
+            Value::Int(i) => { retval -= i; }
+            v => { panic!("builtin func sub passed invalid arg {:?}", v); }
+        }
+    }
+
+    Value::Int(retval)
+}
+
+const BUILTIN_SUB: Value = Value::Builtin(NativeFn {
+    native_fn: func_builtin_sub
+});
+
+pub fn func_builtin_mul(_env: &mut Environment, values: &[Value]) -> Value {
+    let mut retval = 1;
+    for v in values.iter() {
+        match v {
+            Value::Int(i) => { retval *= i; }
+            _ => { panic!("Tried to mul non-numerical {:?}", v); }
+        }
+    }
+
+    Value::Int(retval)
+}
+
+const BUILTIN_MUL: Value = Value::Builtin(NativeFn {
+    native_fn: func_builtin_mul
+});
+
+pub fn func_builtin_div(_env: &mut Environment, values: &[Value]) -> Value {
+    let mut retval;
+    let mut it = values.iter();
+    match it.next() {
+        Some(Value::Int(i)) => { retval = *i; }
+        v => { panic!("builtin func div passed invalid arg {:?}", v); }
+    }
+    for v in values.iter() {
+        match v {
+            Value::Int(i) => { retval /= i; }
+            v => { panic!("builtin func div passed invalid arg {:?}", v); }
+        }
+    }
+
+    Value::Int(retval)
+}
+
+const BUILTIN_DIV: Value = Value::Builtin(NativeFn {
+    native_fn: func_builtin_div
+});
+
+pub fn func_builtin_eq(_env: &mut Environment, values: &[Value]) -> Value {
+    let val: &Value;
+    let mut it = values.iter();
+    match it.next() {
+        Some(v) => { val = v; }
+        None => { return Bool(true); }
+    }
+    for v in values.iter() {
+        if val != v {
+            return Bool(false);
+        }
+    }
+
+    Value::Bool(true)
+}
+
+const BUILTIN_EQ: Value = Value::Builtin(NativeFn {
+    native_fn: func_builtin_eq
 });
 
 pub fn parse_toplevel(env: &mut Environment, line: &str) {
@@ -83,6 +167,10 @@ pub fn parse_toplevel(env: &mut Environment, line: &str) {
 
 pub fn add_default_funcs(env: &mut Environment) {
     env.values.insert(String::from("+"), BUILTIN_ADD);
+    env.values.insert(String::from("-"), BUILTIN_SUB);
+    env.values.insert(String::from("*"), BUILTIN_MUL);
+    env.values.insert(String::from("/"), BUILTIN_DIV);
+    env.values.insert(String::from("eq?"), BUILTIN_EQ);
 }
 
 pub fn eval(env: &mut Environment, pair: &Pair<Rule>) -> Value {
@@ -109,6 +197,15 @@ pub fn eval(env: &mut Environment, pair: &Pair<Rule>) -> Value {
             match head {
                 Builtin(f) => { (f.native_fn)(env, &lst) }
                 _          => { panic!("{:?} not a function", head) }
+            }
+        }
+
+        Rule::assert => {
+            let mut pairs = pair.clone().into_inner();
+            let cond = eval(env, &pairs.next().unwrap());
+            match cond {
+                Bool(true) => { return Bool(true); }
+                _ => { panic!("Assert failure: {:?}", cond) }
             }
         }
 
