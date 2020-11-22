@@ -42,7 +42,8 @@ pub enum Value {
     Bool(bool),
     If(Vec<Value>),
     Ident(String),
-    Builtin(NativeFn)
+    Builtin(NativeFn),
+    Nil
 }
 
 #[derive(Clone,Debug,Eq,PartialEq)]
@@ -207,6 +208,22 @@ pub fn eval(env: &mut Environment, pair: &Pair<Rule>) -> Value {
                 Bool(true) => { return Bool(true); }
                 _ => { panic!("Assert failure: {:?}", cond) }
             }
+        }
+
+        Rule::def => {
+            let mut pairs = pair.clone().into_inner();
+            let ident = String::from(pairs.next().unwrap().as_str());
+            let value = eval(env, &pairs.next().unwrap());
+            env.values.insert(ident, value.clone());
+            return value
+        }
+
+        Rule::do_ => {
+            let mut v = Nil;
+            for inner in pair.clone().into_inner() {
+                v = eval(env, &inner);
+            }
+            return v
         }
 
         Rule::if_ => {

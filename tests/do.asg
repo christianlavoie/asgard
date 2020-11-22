@@ -1,0 +1,4 @@
+(do
+        (def a 123)
+        (def b 456)
+        (assert (eq? 579 (+ a b))))

@@ -9,12 +9,14 @@ num     = @{ digit+ }
 ident   = @{ non_digit_ident_char ~ ident_char* }
 literal = _{ true_ | false_ | num }
 
-cell    = _{ literal | ident | if_ | assert | list }
+cell    = _{ literal | ident | def | do_ | if_ | assert | list }
 
-if_     =  { "(" ~ "if" ~ cell+ ~ ")" }
-assert  =  { "(" ~ "assert" ~ cell+ ~ ")" }
-list    =  { "(" ~ cell+ ~ ")" }
+if_     = { "(" ~ "if" ~ cell+ ~ ")" }
+def     = { "(" ~ "def" ~ ident ~ cell ~ ")" }
+do_     = { "(" ~ "do" ~ cell+ ~ ")" }
+assert  = { "(" ~ "assert" ~ cell+ ~ ")" }
+list    = { "(" ~ cell+ ~ ")" }
 
 toplevel = _{ cell+ }
 
-WHITESPACE = _{ " " }
+WHITESPACE = _{ " " | "\t" | "\n" }
