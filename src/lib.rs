@@ -205,7 +205,7 @@ pub fn eval(env: &mut Environment, pair: &Pair<Rule>) -> Value {
             let mut pairs = pair.clone().into_inner();
             let cond = eval(env, &pairs.next().unwrap());
             match cond {
-                Bool(true) => { return Bool(true); }
+                Bool(true) => { Bool(true) }
                 _ => { panic!("Assert failure: {:?}", cond) }
             }
         }
@@ -215,7 +215,7 @@ pub fn eval(env: &mut Environment, pair: &Pair<Rule>) -> Value {
             let ident = String::from(pairs.next().unwrap().as_str());
             let value = eval(env, &pairs.next().unwrap());
             env.values.insert(ident, value.clone());
-            return value
+            value
         }
 
         Rule::do_ => {
@@ -223,7 +223,7 @@ pub fn eval(env: &mut Environment, pair: &Pair<Rule>) -> Value {
             for inner in pair.clone().into_inner() {
                 v = eval(env, &inner);
             }
-            return v
+            v
         }
 
         Rule::if_ => {
